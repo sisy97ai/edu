@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>분수 디저트 카페</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Jua', sans-serif; background-color: #FEF9C3; }
+        .fraction-input::-webkit-outer-spin-button,
+        .fraction-input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        .fraction-input {
+            -moz-appearance: textfield;
+        }
+        
+        /* Confetti animation */
+        .confetti {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background-color: #f2d74e;
+            opacity: 0;
+            z-index: 50;
+            pointer-events: none;
+        }
+        @keyframes fall {
+            0% { opacity: 1; transform: translateY(-100px) rotate(0deg); }
+            100% { opacity: 0; transform: translateY(800px) rotate(720deg); }
+        }
+
+        /* 반응형 스크롤 바 스타일링 */
+        ::-webkit-scrollbar {
+            width: 10px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1; 
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #fcd34d; 
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #fbbf24; 
+        }
+
+        /* Toast Message Animation */
+        #toast {
+            visibility: hidden;
+            min-width: 250px;
+            background-color: #ef4444; 
+            color: #fff;
+            text-align: center;
+            border-radius: 9999px;
+            padding: 16px 24px;
+            position: fixed;
+            z-index: 100;
+            left: 50%;
+            bottom: 30px;
+            font-size: 1.125rem;
+            transform: translateX(-50%);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            opacity: 0;
+            transition: opacity 0.3s, bottom 0.3s, visibility 0.3s;
+        }
+        #toast.show {
+            visibility: visible;
+            opacity: 1;
+            bottom: 50px;
+        }
+    </style>
+</head>
+<body class="min-h-screen p-4 md:p-8 relative overflow-x-hidden flex items-center justify-center">
+    
+    <div class="w-full max-w-7xl bg-white rounded-3xl shadow-xl overflow-hidden border-4 border-yellow-300 relative z-10 flex flex-col max-h-[95vh]">
+        
+        <!-- Header: 고정 -->
+        <header class="bg-yellow-300 text-yellow-900 py-5 text-center shrink-0 shadow-sm z-20">
+            <h1 class="text-3xl md:text-4xl">🍰 달콤 디저트 카페! 남은 재료를 구해요</h1>
+            <p class="text-lg mt-2">분수의 덧셈과 뺄셈을 활용해 카페의 재고를 관리해 보세요.</p>
+        </header>
+
+        <!-- Main Content: 좌우 2단 / 좁아지면 상하 1단 (스크롤 영역) -->
+        <div class="flex-1 overflow-y-auto p-6 md:p-8">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+                
+                <!-- [왼쪽 영역] 문제 상황: 창고 및 주문서 -->
+                <div class="space-y-8">
+                    <!-- Section 1: Initial Ingredients -->
+                    <section class="bg-blue-50 p-5 rounded-2xl border-2 border-blue-200 shadow-sm">
+                        <h2 class="text-2xl text-blue-800 mb-4 flex items-center">
+                            <span class="text-3xl mr-2">📦</span> 창고 (처음 가진 재료)
+                        </h2>
+                        <div class="grid grid-cols-3 gap-3">
+                            <div class="bg-white p-3 rounded-xl shadow-sm text-center border border-blue-100 flex flex-col justify-center">
+                                <div class="text-3xl mb-1">🥛</div>
+                                <div class="text-gray-600 mb-1 text-sm md:text-base">우유</div>
+                                <div class="flex justify-center items-center">
+                                    <input type="number" id="init_milk" value="10" min="0" oninput="if(this.value < 0) this.value = Math.abs(this.value); validateStock(this);" class="w-12 md:w-16 text-center text-lg md:text-xl font-bold border-b-2 border-blue-400 focus:outline-none focus:border-blue-600 bg-transparent transition-colors">
+                                    <span class="ml-1 text-base md:text-lg">팩</span>
+                                </div>
+                            </div>
+                            <div class="bg-white p-3 rounded-xl shadow-sm text-center border border-blue-100 flex flex-col justify-center">
+                                <div class="text-3xl mb-1">🍫</div>
+                                <div class="text-gray-600 mb-1 text-sm md:text-base">초코 시럽</div>
+                                <div class="flex justify-center items-center">
+                                    <input type="number" id="init_choco" value="9" min="0" oninput="if(this.value < 0) this.value = Math.abs(this.value); validateStock(this);" class="w-12 md:w-16 text-center text-lg md:text-xl font-bold border-b-2 border-amber-400 focus:outline-none focus:border-amber-600 bg-transparent transition-colors">
+                                    <span class="ml-1 text-base md:text-lg">큰술</span>
+                                </div>
+                            </div>
+                            <div class="bg-white p-3 rounded-xl shadow-sm text-center border border-blue-100 flex flex-col justify-center">
+                                <div class="text-3xl mb-1">🍓</div>
+                                <div class="text-gray-600 mb-1 text-sm md:text-base">딸기청</div>
+                                <div class="flex justify-center items-center">
+                                    <input type="number" id="init_berry" value="15" min="0" oninput="if(this.value < 0) this.value = Math.abs(this.value); validateStock(this);" class="w-12 md:w-16 text-center text-lg md:text-xl font-bold border-b-2 border-rose-400 focus:outline-none focus:border-rose-600 bg-transparent transition-colors">
+                                    <span class="ml-1 text-base md:text-lg">큰술</span>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Section 2: Recipes & Orders -->
+                    <section class="bg-pink-50 p-5 rounded-2xl border-2 border-pink-200 shadow-sm">
+                        <div class="flex justify-between items-center mb-4">
+                            <h2 class="text-2xl text-pink-800 flex items-center">
+                                <span class="text-3xl mr-2">📝</span> 레시피와 주문서
+                            </h2>
+                            <button onclick="randomOrder()" class="bg-pink-400 hover:bg-pink-500 text-white px-3 py-1.5 md:px-4 md:py-2 rounded-full shadow text-sm md:text-base transition-colors active:scale-95">
+                                🎲 주문 랜덤 생성
+                            </button>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <!-- Choco Latte -->
+                            <div class="bg-white p-4 rounded-xl border-2 border-amber-200 shadow-sm flex flex-col justify-between">
+                                <div>
+                                    <h3 class="text-lg md:text-xl text-amber-800 font-bold mb-2">🍫 초코 듬뿍 라떼(1잔)</h3>
+                                    <ul class="text-gray-700 text-base md:text-lg list-disc list-inside mb-4 space-y-1">
+                                        <li>우유 1팩</li>
+                                        <li class="flex items-center inline-flex">
+                                            초코 시럽 
+                                            <span class="inline-flex items-center mx-1">
+                                                <span class="text-xl">2</span>
+                                                <span class="flex flex-col items-center mx-1 text-sm">
+                                                    <span>3</span>
+                                                    <span class="w-full h-px bg-gray-700 my-0.5"></span>
+                                                    <span>4</span>
+                                                </span>
+                                            </span>
+                                            큰술
+                                        </li>
+                                    </ul>
+                                </div>
+                                <div class="bg-amber-50 p-3 rounded-lg flex justify-between items-center">
+                                    <span class="text-base md:text-lg font-bold text-amber-900">주문량:</span>
+                                    <div class="flex items-center bg-white rounded shadow-sm">
+                                        <input type="number" id="order_choco" value="2" min="0" max="10" oninput="if(this.value < 0) this.value = Math.abs(this.value); validateStock(this);" class="w-12 md:w-16 text-center text-xl md:text-2xl font-bold border-2 border-amber-300 rounded focus:outline-none focus:border-amber-600 transition-colors">
+                                        <span class="mx-2 text-base md:text-lg">잔</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Strawberry Latte -->
+                            <div class="bg-white p-4 rounded-xl border-2 border-rose-200 shadow-sm flex flex-col justify-between">
+                                <div>
+                                    <h3 class="text-lg md:text-xl text-rose-600 font-bold mb-2">🍓 리얼 딸기 라떼(1잔)</h3>
+                                    <ul class="text-gray-700 text-base md:text-lg list-disc list-inside mb-4 space-y-1">
+                                        <li>우유 1팩</li>
+                                        <li class="flex items-center inline-flex">
+                                            딸기청 
+                                            <span class="inline-flex items-center mx-1">
+                                                <span class="text-xl">3</span>
+                                                <span class="flex flex-col items-center mx-1 text-sm">
+                                                    <span>1</span>
+                                                    <span class="w-full h-px bg-gray-700 my-0.5"></span>
+                                                    <span>3</span>
+                                                </span>
+                                            </span>
+                                            큰술
+                                        </li>
+                                    </ul>
+                                </div>
+                                <div class="bg-rose-50 p-3 rounded-lg flex justify-between items-center">
+                                    <span class="text-base md:text-lg font-bold text-rose-700">주문량:</span>
+                                    <div class="flex items-center bg-white rounded shadow-sm">
+                                        <input type="number" id="order_berry" value="1" min="0" max="10" oninput="if(this.value < 0) this.value = Math.abs(this.value); validateStock(this);" class="w-12 md:w-16 text-center text-xl md:text-2xl font-bold border-2 border-rose-300 rounded focus:outline-none focus:border-rose-600 transition-colors">
+                                        <span class="mx-2 text-base md:text-lg">잔</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+
+                <!-- [오른쪽 영역] 풀이 입력 및 피드백 -->
+                <div class="space-y-6 flex flex-col h-full">
+                    <!-- Section 3: Student Answers -->
+                    <section class="bg-green-50 p-5 rounded-2xl border-2 border-green-200 shadow-sm flex-1">
+                        <h2 class="text-2xl text-green-800 mb-3 flex items-center">
+                            <span class="text-3xl mr-2">🤔</span> 남은 재료는 얼마일까요?
+                        </h2>
+                        <p class="text-gray-600 mb-5 text-sm md:text-base break-keep">
+                            주문받은 음료를 모두 만들고 난 후, 창고에 남은 재료의 양을 적어주세요.<br>
+                            <span class="text-blue-600 text-sm">(※ 분수가 없는 자연수 정답이라면 분자, 분모 칸을 비워두거나 0으로 적어도 됩니다!)</span>
+                        </p>
+                        
+                        <div class="space-y-4">
+                            <!-- Milk Answer -->
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between bg-white p-4 rounded-xl shadow-sm border border-green-100">
+                                <div class="text-lg md:text-xl text-blue-700 font-bold flex items-center mb-2 sm:mb-0">
+                                    <span class="text-2xl mr-2">🥛</span> 남은 우유
+                                </div>
+                                <div class="flex items-center">
+                                    <input type="number" id="ans_milk" min="0" oninput="if(this.value < 0) this.value = Math.abs(this.value);" placeholder="자연수" class="w-20 md:w-24 p-2 text-center text-lg md:text-xl border-2 border-blue-200 rounded-lg focus:outline-none focus:border-blue-500 bg-blue-50 focus:bg-white transition-colors">
+                                    <span class="ml-2 text-lg">팩</span>
+                                </div>
+                            </div>
+
+                            <!-- Choco Syrup Answer -->
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between bg-white p-4 rounded-xl shadow-sm border border-green-100">
+                                <div class="text-lg md:text-xl text-amber-800 font-bold flex items-center mb-2 sm:mb-0">
+                                    <span class="text-2xl mr-2">🍫</span> 남은 초코 시럽
+                                </div>
+                                <div class="flex items-center bg-gray-50 p-2 rounded-lg border border-gray-200 shrink-0">
+                                    <input type="number" id="ans_c_w" min="0" oninput="if(this.value < 0) this.value = Math.abs(this.value);" placeholder="자연수" class="fraction-input w-16 md:w-20 p-2 text-center text-lg md:text-xl border-2 border-amber-200 rounded-lg focus:outline-none focus:border-amber-500 bg-white transition-colors">
+                                    <span class="mx-2 text-base md:text-lg">과</span>
+                                    <div class="flex flex-col items-center">
+                                        <input type="number" id="ans_c_n" min="0" oninput="if(this.value < 0) this.value = Math.abs(this.value);" placeholder="분자" class="fraction-input w-12 md:w-14 p-1 text-center text-base md:text-lg border-2 border-amber-200 rounded focus:outline-none focus:border-amber-500 bg-white transition-colors">
+                                        <div class="w-full h-0.5 bg-amber-500 my-1"></div>
+                                        <input type="number" id="ans_c_d" min="0" oninput="if(this.value < 0) this.value = Math.abs(this.value);" placeholder="4" class="fraction-input w-12 md:w-14 p-1 text-center text-base md:text-lg border-2 border-amber-200 rounded focus:outline-none focus:border-amber-500 bg-white transition-colors">
+                                    </div>
+                                    <span class="ml-2 text-base md:text-lg">큰술</span>
+                                </div>
+                            </div>
+
+                            <!-- Strawberry Syrup Answer -->
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between bg-white p-4 rounded-xl shadow-sm border border-green-100">
+                                <div class="text-lg md:text-xl text-rose-600 font-bold flex items-center mb-2 sm:mb-0">
+                                    <span class="text-2xl mr-2">🍓</span> 남은 딸기청
+                                </div>
+                                <div class="flex items-center bg-gray-50 p-2 rounded-lg border border-gray-200 shrink-0">
+                                    <input type="number" id="ans_b_w" min="0" oninput="if(this.value < 0) this.value = Math.abs(this.value);" placeholder="자연수" class="fraction-input w-16 md:w-20 p-2 text-center text-lg md:text-xl border-2 border-rose-200 rounded-lg focus:outline-none focus:border-rose-500 bg-white transition-colors">
+                                    <span class="mx-2 text-base md:text-lg">과</span>
+                                    <div class="flex flex-col items-center">
+                                        <input type="number" id="ans_b_n" min="0" oninput="if(this.value < 0) this.value = Math.abs(this.value);" placeholder="분자" class="fraction-input w-12 md:w-14 p-1 text-center text-base md:text-lg border-2 border-rose-200 rounded focus:outline-none focus:border-rose-500 bg-white transition-colors">
+                                        <div class="w-full h-0.5 bg-rose-400 my-1"></div>
+                                        <input type="number" id="ans_b_d" min="0" oninput="if(this.value < 0) this.value = Math.abs(this.value);" placeholder="3" class="fraction-input w-12 md:w-14 p-1 text-center text-base md:text-lg border-2 border-rose-200 rounded focus:outline-none focus:border-rose-500 bg-white transition-colors">
+                                    </div>
+                                    <span class="ml-2 text-base md:text-lg">큰술</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="flex gap-3 justify-center mt-6">
+                            <button onclick="checkAnswer()" class="flex-1 bg-blue-500 hover:bg-blue-600 text-white text-xl md:text-2xl py-3 px-4 rounded-2xl shadow-lg transition-transform transform hover:scale-[1.02] active:scale-95">
+                                ✨ 정답 확인하기
+                            </button>
+                            <button onclick="resetApp()" class="bg-gray-200 hover:bg-gray-300 text-gray-700 text-lg md:text-xl py-3 px-4 rounded-2xl shadow transition-colors active:scale-95 shrink-0">
+                                🔄 리셋
+                            </button>
+                        </div>
+                    </section>
+
+                    <!-- Feedback Area -->
+                    <div id="feedback_area" class="hidden p-5 rounded-2xl border-2 shadow-sm transition-all duration-500 shrink-0">
+                        <div id="feedback_icon" class="text-4xl text-center mb-2"></div>
+                        <h3 id="feedback_title" class="text-xl md:text-2xl font-bold text-center mb-3"></h3>
+                        <div id="feedback_content" class="text-base md:text-lg text-gray-700 space-y-4 bg-white p-4 rounded-xl max-h-[40vh] overflow-y-auto">
+                            <!-- Step-by-step logic injected here -->
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast">앗! 창고의 재료가 부족해서 주문을 더 받을 수 없어요! 😅</div>
+
+    <!-- Confetti Container -->
+    <div id="confetti_container" class="absolute inset-0 pointer-events-none overflow-hidden z-50"></div>
+
+    <script>
+        // Recipe Constants
+        const RECIPE_CHOCO = { w: 2, n: 3, d: 4 };
+        const RECIPE_BERRY = { w: 3, n: 1, d: 3 };
+
+        // Store the last valid state to revert to if the user enters impossible amounts
+        let lastValidState = {
+            init_milk: 10, init_choco: 9, init_berry: 15,
+            order_choco: 2, order_berry: 1
+        };
+
+        function showToast(message) {
+            const toast = document.getElementById("toast");
+            toast.innerText = message;
+            toast.classList.add("show");
+            setTimeout(() => { toast.classList.remove("show"); }, 3000);
+        }
+
+        // Real-time stock validation
+        function validateStock(inputElement) {
+            const initMilk = parseInt(document.getElementById('init_milk').value) || 0;
+            const initChoco = parseInt(document.getElementById('init_choco').value) || 0;
+            const initBerry = parseInt(document.getElementById('init_berry').value) || 0;
+            const orderChoco = parseInt(document.getElementById('order_choco').value) || 0;
+            const orderBerry = parseInt(document.getElementById('order_berry').value) || 0;
+
+            const remainMilk = initMilk - orderChoco - orderBerry;
+            
+            const usedChocoImproper = orderChoco * (RECIPE_CHOCO.w * RECIPE_CHOCO.d + RECIPE_CHOCO.n);
+            const remainChocoImproper = (initChoco * RECIPE_CHOCO.d) - usedChocoImproper;
+            
+            const usedBerryImproper = orderBerry * (RECIPE_BERRY.w * RECIPE_BERRY.d + RECIPE_BERRY.n);
+            const remainBerryImproper = (initBerry * RECIPE_BERRY.d) - usedBerryImproper;
+
+            // If stock goes negative, revert to last valid state and show toast
+            if (remainMilk < 0 || remainChocoImproper < 0 || remainBerryImproper < 0) {
+                if (inputElement) {
+                    inputElement.value = lastValidState[inputElement.id];
+                }
+                showToast("앗! 창고의 재료가 부족해서 주문을 더 받을 수 없어요! 😅");
+                return false;
+            } else {
+                // Update valid state
+                lastValidState.init_milk = initMilk;
+                lastValidState.init_choco = initChoco;
+                lastValidState.init_berry = initBerry;
+                lastValidState.order_choco = orderChoco;
+                lastValidState.order_berry = orderBerry;
+                return true;
+            }
+        }
+
+        function renderFractionHTML(w, n, d) {
+            let html = `<span class="inline-flex items-center align-middle mx-1 text-lg md:text-xl">`;
+            if (w > 0) html += `<span class="font-bold mr-1">${w}</span>`;
+            if (n > 0) {
+                html += `<span class="flex flex-col items-center text-sm leading-none">`;
+                html += `<span>${n}</span>`;
+                html += `<span class="w-full h-[2px] bg-current my-0.5"></span>`;
+                html += `<span>${d}</span>`;
+                html += `</span>`;
+            }
+            if (w === 0 && n === 0) html += `<span class="font-bold">0</span>`;
+            html += `</span>`;
+            return html;
+        }
+
+        function getAdditionStepsHTML(w, n, d, count) {
+            if (count === 0) return "0";
+            let parts = [];
+            for(let i=0; i<count; i++) {
+                parts.push(renderFractionHTML(w, n, d));
+            }
+            let totalImproper = count * (w * d + n);
+            let totalW = Math.floor(totalImproper / d);
+            let totalN = totalImproper % d;
+            
+            let resultHTML = renderFractionHTML(totalW, totalN, d);
+            
+            if (count === 1) return resultHTML;
+            return parts.join(" + ") + " = " + resultHTML;
+        }
+
+        function getSubtractionStepsHTML(initAmount, usedImproper, d) {
+            let usedW = Math.floor(usedImproper / d);
+            let usedN = usedImproper % d;
+            
+            if (usedImproper === 0) return `${initAmount} - 0 = ${initAmount}`;
+            
+            let remainImproper = (initAmount * d) - usedImproper;
+            let remainW = Math.floor(remainImproper / d);
+            let remainN = remainImproper % d;
+            
+            let html = `<div class="bg-gray-50 p-3 md:p-4 rounded-lg mt-2 font-sans tracking-wide border border-gray-100 break-keep">`;
+            html += `<div>${initAmount} - ${renderFractionHTML(usedW, usedN, d)}</div>`;
+            
+            if (usedN === 0) {
+                html += `<div class="mt-1 text-blue-600 font-bold">= ${remainW}</div>`;
+            } else {
+                let borrowedW = initAmount - 1;
+                html += `<div class="text-gray-500 text-xs md:text-sm mt-2">※ 자연수 1을 분수로 바꾸어(받아내림) 계산해요!</div>`;
+                html += `<div class="mt-1">= ${renderFractionHTML(borrowedW, d, d)} - ${renderFractionHTML(usedW, usedN, d)}</div>`;
+                html += `<div class="mt-1 text-blue-600 font-bold">= ${renderFractionHTML(remainW, remainN, d)}</div>`;
+            }
+            html += `</div>`;
+            return html;
+        }
+
+        // Generate random valid orders based on current valid stock
+        function randomOrder() {
+            let validFound = false;
+            let attempts = 0;
+            
+            while (!validFound && attempts < 50) {
+                document.getElementById('order_choco').value = Math.floor(Math.random() * 3) + 1;
+                document.getElementById('order_berry').value = Math.floor(Math.random() * 3) + 1;
+                
+                if (validateStock(null)) {
+                    validFound = true;
+                }
+                attempts++;
+            }
+            
+            // If somehow unable to find a valid combo, reset orders to 0
+            if (!validFound) {
+                document.getElementById('order_choco').value = 0;
+                document.getElementById('order_berry').value = 0;
+                validateStock(null);
+            }
+            
+            hideFeedback();
+            clearAnswers();
+        }
+
+        function hideFeedback() {
+            const fb = document.getElementById('feedback_area');
+            fb.classList.add('hidden');
+        }
+
+        function clearAnswers() {
+            document.getElementById('ans_milk').value = '';
+            document.getElementById('ans_c_w').value = '';
+            document.getElementById('ans_c_n').value = '';
+            document.getElementById('ans_c_d').value = '';
+            document.getElementById('ans_b_w').value = '';
+            document.getElementById('ans_b_n').value = '';
+            document.getElementById('ans_b_d').value = '';
+        }
+
+        function resetApp() {
+            // Restore defaults
+            document.getElementById('init_milk').value = 10;
+            document.getElementById('init_choco').value = 9;
+            document.getElementById('init_berry').value = 15;
+            
+            lastValidState = {
+                init_milk: 10, init_choco: 9, init_berry: 15,
+                order_choco: 0, order_berry: 0
+            };
+            
+            randomOrder();
+        }
+
+        function checkAnswer() {
+            const initMilk = parseInt(document.getElementById('init_milk').value) || 0;
+            const initChoco = parseInt(document.getElementById('init_choco').value) || 0;
+            const initBerry = parseInt(document.getElementById('init_berry').value) || 0;
+
+            const orderChoco = parseInt(document.getElementById('order_choco').value) || 0;
+            const orderBerry = parseInt(document.getElementById('order_berry').value) || 0;
+
+            const remainMilk = initMilk - orderChoco - orderBerry;
+            
+            const usedChocoImproper = orderChoco * (RECIPE_CHOCO.w * RECIPE_CHOCO.d + RECIPE_CHOCO.n);
+            const remainChocoImproper = (initChoco * RECIPE_CHOCO.d) - usedChocoImproper;
+            
+            const usedBerryImproper = orderBerry * (RECIPE_BERRY.w * RECIPE_BERRY.d + RECIPE_BERRY.n);
+            const remainBerryImproper = (initBerry * RECIPE_BERRY.d) - usedBerryImproper;
+
+            // This should ideally never hit because of real-time validation, but kept as fallback.
+            if (remainMilk < 0 || remainChocoImproper < 0 || remainBerryImproper < 0) {
+                showToast("앗! 재료가 부족해요. 창고의 재료를 늘리거나 주문량을 줄여주세요!");
+                return;
+            }
+
+            const ansMilk = parseInt(document.getElementById('ans_milk').value);
+            
+            const ansCw = parseInt(document.getElementById('ans_c_w').value) || 0;
+            const ansCn = parseInt(document.getElementById('ans_c_n').value) || 0;
+            let ansCd = parseInt(document.getElementById('ans_c_d').value);
+            if (isNaN(ansCd)) ansCd = RECIPE_CHOCO.d;
+
+            const ansBw = parseInt(document.getElementById('ans_b_w').value) || 0;
+            const ansBn = parseInt(document.getElementById('ans_b_n').value) || 0;
+            let ansBd = parseInt(document.getElementById('ans_b_d').value);
+            if (isNaN(ansBd)) ansBd = RECIPE_BERRY.d;
+
+            let milkCorrect = (!isNaN(ansMilk) && ansMilk === remainMilk);
+            const stuChocoImproper = (ansCw * ansCd) + ansCn;
+            let chocoCorrect = (stuChocoImproper * RECIPE_CHOCO.d === remainChocoImproper * ansCd);
+            const stuBerryImproper = (ansBw * ansBd) + ansBn;
+            let berryCorrect = (stuBerryImproper * RECIPE_BERRY.d === remainBerryImproper * ansBd);
+
+            const fbArea = document.getElementById('feedback_area');
+            const fbIcon = document.getElementById('feedback_icon');
+            const fbTitle = document.getElementById('feedback_title');
+            const fbContent = document.getElementById('feedback_content');
+            
+            fbArea.classList.remove('hidden', 'border-green-400', 'border-red-400', 'bg-green-50', 'bg-red-50');
+
+            if (milkCorrect && chocoCorrect && berryCorrect) {
+                fbArea.classList.add('border-green-400', 'bg-green-50');
+                fbIcon.innerHTML = '🎉';
+                fbTitle.innerHTML = '<span class="text-green-600">완벽해요! 계산이 정확합니다.</span>';
+                fbContent.innerHTML = `<p class="text-center font-bold text-xl text-green-700">참 잘했어요! 훌륭한 카페 매니저네요!</p>`;
+                triggerConfetti();
+            } else {
+                fbArea.classList.add('border-red-400', 'bg-red-50');
+                fbIcon.innerHTML = '💡';
+                fbTitle.innerHTML = '<span class="text-red-600">아쉽지만 틀린 곳이 있어요!</span>';
+                
+                let explanationHTML = '';
+                
+                if (!milkCorrect) {
+                    explanationHTML += `
+                        <div class="mb-3">
+                            <h4 class="font-bold text-blue-700 text-lg md:text-xl border-b-2 border-blue-200 pb-1 mb-2">🥛 우유 계산 과정</h4>
+                            <ul class="list-disc list-inside space-y-1">
+                                <li>처음 양: ${initMilk}팩</li>
+                                <li>사용한 양: 초코 듬뿍 라떼 ${orderChoco}팩 + 리얼 딸기 라떼 ${orderBerry}팩 = ${orderChoco + orderBerry}팩</li>
+                                <li>남은 양: ${initMilk} - ${orderChoco + orderBerry} = <strong>${remainMilk}</strong>팩</li>
+                            </ul>
+                        </div>
+                    `;
+                }
+                if (!chocoCorrect) {
+                    explanationHTML += `
+                        <div class="mb-3">
+                            <h4 class="font-bold text-amber-800 text-lg md:text-xl border-b-2 border-amber-200 pb-1 mb-2">🍫 초코 시럽 계산 과정</h4>
+                            <ul class="list-disc list-inside space-y-1">
+                                <li>처음 양: ${initChoco}큰술</li>
+                                <li>사용한 양:<br> ${getAdditionStepsHTML(RECIPE_CHOCO.w, RECIPE_CHOCO.n, RECIPE_CHOCO.d, orderChoco)}</li>
+                                <li>남은 양 구하기: ${getSubtractionStepsHTML(initChoco, usedChocoImproper, RECIPE_CHOCO.d)}</li>
+                            </ul>
+                        </div>
+                    `;
+                }
+                if (!berryCorrect) {
+                    explanationHTML += `
+                        <div class="mb-3">
+                            <h4 class="font-bold text-rose-600 text-lg md:text-xl border-b-2 border-rose-200 pb-1 mb-2">🍓 딸기청 계산 과정</h4>
+                            <ul class="list-disc list-inside space-y-1">
+                                <li>처음 양: ${initBerry}큰술</li>
+                                <li>사용한 양:<br> ${getAdditionStepsHTML(RECIPE_BERRY.w, RECIPE_BERRY.n, RECIPE_BERRY.d, orderBerry)}</li>
+                                <li>남은 양 구하기: ${getSubtractionStepsHTML(initBerry, usedBerryImproper, RECIPE_BERRY.d)}</li>
+                            </ul>
+                        </div>
+                    `;
+                }
+                fbContent.innerHTML = explanationHTML;
+            }
+            
+            // 피드백 영역이 보이도록 스크롤 이동
+            setTimeout(() => {
+                fbArea.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }, 100);
+        }
+
+        function triggerConfetti() {
+            const container = document.getElementById('confetti_container');
+            container.innerHTML = ''; 
+            const colors = ['#fce18a', '#ff726d', '#b48def', '#f4306d', '#42A5F5'];
+            
+            for (let i = 0; i < 60; i++) {
+                let confetti = document.createElement('div');
+                confetti.classList.add('confetti');
+                confetti.style.left = Math.random() * 100 + 'vw';
+                confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                confetti.style.animation = `fall ${Math.random() * 1 + 1}s linear forwards`;
+                confetti.style.animationDelay = Math.random() * 0.5 + 's';
+                container.appendChild(confetti);
+            }
+            
+            setTimeout(() => { container.innerHTML = ''; }, 3000);
+        }
+
+        // Initialize state on load
+        window.onload = function() {
+            validateStock(null);
+        };
+    </script>
+</body>
+</html>
